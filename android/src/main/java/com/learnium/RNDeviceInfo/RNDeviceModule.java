@@ -5,10 +5,13 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.provider.Settings.Secure;
+import android.telephony.TelephonyManager;
+import android.content.Context;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 
+import java.util.UUID;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -49,6 +52,20 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
     return current.getCountry();
   }
 
+  public static String getUniqueID(ReactApplicationContext context) {
+    final TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+
+    final String tmDevice, tmSerial, tmPhone, androidId;
+    tmDevice = "" + tm.getDeviceId();
+    tmSerial = "" + tm.getSimSerialNumber();
+    androidId = "" + android.provider.Settings.Secure.getString(context.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+
+    UUID deviceUuid = new UUID(androidId.hashCode(), ((long)tmDevice.hashCode() << 32) | tmSerial.hashCode());
+    String deviceId = deviceUuid.toString();
+
+    return deviceId;
+  }
+
   @Override
   public @Nullable Map<String, Object> getConstants() {
     HashMap<String, Object> constants = new HashMap<String, Object>();
@@ -84,7 +101,7 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
     constants.put("deviceId", Build.BOARD);
     constants.put("deviceLocale", this.getCurrentLanguage());
     constants.put("deviceCountry", this.getCurrentCountry());
-    constants.put("uniqueId", Secure.getString(this.reactContext.getContentResolver(), Secure.ANDROID_ID));
+    constants.put("uniqueId", this.getUniqueID(this.reactContext));
     constants.put("systemManufacturer", Build.MANUFACTURER);
     constants.put("bundleId", packageName);
     constants.put("userAgent", System.getProperty("http.agent"));
